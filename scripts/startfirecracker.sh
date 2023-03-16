@@ -1,14 +1,11 @@
 #!/bin/sh
 
-if [ -v firecracker_id ];
-then
-  echo "$firecrackr_id is current id"
-else
-  echo "firecracker id was not set.\nplease run host network setup before running firecracker"
-  exit 1
-fi
-
-id=$firecracker_id
+root=/home/pandi-con1220/Firecracker/rootfs
+fireid=/home/pandi-con1220/Firecracker/scripts/firecracker_id
+id=$(cat $fireid)
+sudo mount $root /tmp/my-rootfs
+sudo cp $fireid /tmp/my-rootfs/root/
+sudo umount /tmp/my-rootfs
 config_file=/home/pandi-con1220/Firecracker/config/${id}.json
 cp /home/pandi-con1220/Firecracker/alpineconfig.json $config_file
 sed -i "s/<tap-name>/tap1/g" $config_file
