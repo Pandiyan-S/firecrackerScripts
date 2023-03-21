@@ -12,6 +12,9 @@ iptablerules()
 {
 	sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
 
+	iptables -F
+	iptables-restore < /home/pandi-con1220/iptables/baserules.v4
+
 	iptables -t nat -A POSTROUTING -o $2 -j MASQUERADE
 	iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 	iptables -A FORWARD -i $1 -o $2 -j ACCEPT
@@ -21,6 +24,23 @@ iptablerules()
 	iptables -A OUTPUT -j DROP
 }
 
+tapcreate()
+{
+	MASK="/31"
+	ip tuntap add $1 mode tap
+	exitstate $? "unable to add $1"
+	echo "$1 added"
+
+	ip addr add ${2}${MASK} dev $1
+	ip link set $1 up
+	ifconfig | grep $1 > /dev/null
+	exitstate $? "Failed to bring up $1 interface"
+	echo "$1 interface is up"
+}
+
+ethernet="wlp0s20f3"
+id=$1
+beg=0
 if [ $# -eq 0 ];
 then
 	exitstate 1 "ERROR : no id provided"
@@ -38,10 +58,7 @@ then
 fi
 
 echo "using $ethernet network interface"
-echo $?
 
-id=$1
-beg=0
 suf=$(expr $id \* 2)
 if [ "$suf" -gt 255 ];
 then
@@ -50,39 +67,34 @@ then
 fi
 ip="162.16.$beg.$suf"
 tapname="tap$id"
-MASK="/24"
-ethernet="wlp0s20f3"
 
 if ifconfig | grep $tapname > /dev/null;
 then
     echo "$tapname interface is already up"
     iptablerules $tapname $ethernet
-    echo "$id" > /home/pandi-con1220/Firecracker/scripts/firecracker_id
     exit 0
 fi
 
+echo "$tapname"
 ip a show $tapname
-if [ $? ]
+if [ $? -eq 0 ];
 then
 	echo "$tapname already exists"
+	ip tuntap del $tapname mode tap
 else
 	ping -c 1 -s 0 $ip > /dev/null
-	exitstate $? "$ip is currently already in use\nplease use a different id"
+	if [ $? -eq 0 ];
+	then
+		exitstate 1 "$ip is currently already in use\nplease use a different id"
+	fi
 	echo "$ip is going to be used"
-	ip tuntap add $tapname mode tap
-	exitstate $? "unable to add $tapname"
-	echo "$tapname added"
 fi
 
-ip addr add ${ip}${MASK} dev $tapname
-ip link set $tapname up
-ifconfig | grep $tapname > /dev/null
-exitstate $? "Failed to bring up $tapname interface"
-echo "$tapname interface is up"
+tapcreate $tapname $ip
 
 iptablerules $tapname $ethernet
-if [ $? ];
+if [ $? -eq 0 ];
 then
 	echo "host network setup completed"
-	echo "$id" > /home/pandi-con1220/Firecracker/scripts/firecracker_id
+	exit 0
 fi

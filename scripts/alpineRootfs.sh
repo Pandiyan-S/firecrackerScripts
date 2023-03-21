@@ -41,9 +41,5 @@ ls $mount
 sudo chmod +x ${mount}/*
 docker run --rm -v $mount:/my-rootfs alpine sh -c '/my-rootfs/alpineconfigure.sh'
 sudo rm ${mount}/alpineconfigure.sh
-echo $?
-sudo cp /home/pandi-con1220/Firecracker/scripts/alpineguestsetup.sh $mount/root
 ls $mount
-echo $?
 sudo umount $mount
-echo $?

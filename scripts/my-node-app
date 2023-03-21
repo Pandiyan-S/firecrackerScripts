@@ -1,0 +1,35 @@
+#!/sbin/openrc-run
+
+description="My Node.js App"
+pidfile="/run/myscript.pid"
+command="/usr/bin/node /root/testnode.js"
+
+start() {
+	# Start the Node.js app
+	id=<id-no>
+	echo $id
+	beg=0
+	hostsuf=$(expr $id \* 2)
+	if [ "$hostsuf" -gt 255 ];
+	then
+        	beg=$(expr $hostsuf / 256)
+	        hostsuf=$(expr $hostsuf % 256)
+	fi
+	echo $hostsuf
+	hostip="162.16.$beg.$hostsuf"
+	suf=$(expr $hostsuf + 1)
+	ip="162.16.$beg.$suf"
+	echo $ip
+	echo $hostip
+	ip addr add $ip/31 dev eth0
+	ip link set eth0 up
+	ip route add default via $hostip dev eth0
+	eebegin "Starting My Node.js App"
+	/sbin/start-stop-daemon --start --pidfile $pidfile --make-pidfile --background --exec $command
+}
+
+stop() {
+	# Stop the Node.js app
+	eebegin "Stopping My Node.js App"
+	/sbin/start-stop-daemon --stop --pidfile $pidfile --exec $command
+}
