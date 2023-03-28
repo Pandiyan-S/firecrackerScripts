@@ -16,11 +16,11 @@ fi
 
 VM_ID=$1
 
-sudo /home/pandi-con1220/Firecracker/scripts/hostnetworksetup.sh $VM_ID
+sudo sh /home/pandi-con1220/Firecracker/scripts/hostnetworksetup.sh $VM_ID $2
 exitstate $? "host network setup failure"
 
 CHROOT_BASE="/home/pandi-con1220/jail"
-CHROOT_PATH="${CHROOT_BASE}/firecracker/$VM_ID/root"
+CHROOT_PATH="$CHROOT_BASE/firecracker/$VM_ID/root"
 firehome="/home/pandi-con1220/Firecracker/firecracker/build/cargo_target/x86_64-unknown-linux-musl/debug/"
 
 sudo rm -rf $CHROOT_BASE/firecracker/$VM_ID
@@ -39,15 +39,12 @@ else
 fi
 echo $?
 sudo mount $CHROOT_PATH/rootfs /tmp/my-rootfs
-echo $VM_ID
-cat /tmp/my-rootfs/etc/init.d/my-node-app
 sudo sed -i "s/<id-no>/$VM_ID/g" /tmp/my-rootfs/etc/init.d/my-node-app
-cat /tmp/my-rootfs/etc/init.d/my-node-app
 sudo umount /tmp/my-rootfs
 
 sudo chmod 777 ${CHROOT_PATH}/*
 echo $?
-sed -i "s/<tap-name>/tap${VM_ID}/g" ${CHROOT_PATH}/alpineconfig.json
+sed -i "s/<id-no>/${VM_ID}/g" ${CHROOT_PATH}/alpineconfig.json
 
 echo "${CHROOT_PATH}/alpineconfig.json"
 $firehome/jailer --id $VM_ID --exec-file "$firehome/firecracker" --uid 618256567 --gid 618136065 --chroot-base-dir $CHROOT_BASE -- --config-file "alpineconfig.json"
